@@ -1,0 +1,15 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>CameraOption.qml</file>
+        <file>LoadingComponent.qml</file>
+        <file>QText.qml</file>
+        <file>SettingPosition.qml</file>
+        <file>SwitchButton.qml</file>
+        <file>LoadingIcon.png</file>
+        <file>InitPoup.qml</file>
+        <file>completedIcon.png</file>
+        <file>failIcon.png</file>
+        <file>ConnectNetworkPopup.qml</file>
+    </qresource>
+</RCC>

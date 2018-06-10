@@ -92,10 +92,6 @@ void MqttComunication::slotPublishData(QString topicName, int data)
 
 void MqttComunication::slotPingResponse()
 {
-    const QString content = QDateTime::currentDateTime().toString()
-            + QLatin1String(" PingResponse")
-            + QLatin1Char('\n');
-    DLT_LOG << "[slotPingResponse] >> :" << content;
     m_countPingRequest = 0;
     MODEL->setConnectedServer(true);
     MODEL->setShowPopupCheckConn(false);
@@ -103,7 +99,6 @@ void MqttComunication::slotPingResponse()
 
 void MqttComunication::requestPing()
 {
-    DLT_LOG << "[requestPing]";
     m_client->requestPing();
     if(m_countPingRequest >= 3)
     {

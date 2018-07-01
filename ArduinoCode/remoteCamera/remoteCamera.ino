@@ -39,11 +39,17 @@
 #define LOG(a)                          Serial.print(a)
 #define LOG_LN(a)                       Serial.println(a)
 
+enum E_MOVING_STATUS: int{
+  E_MOVING_NONE = 0,
+  E_MOVING_UP,
+  E_MOVING_DOWN,
+};
+
 String ip = "";
 uint8_t mac[6] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 long previousMillis = 0;
 unsigned int requestedPosition = -1;
-bool isMoving = false;
+int isMoving = E_MOVING_STATUS::E_MOVING_NONE;
 EthernetClient ethClient;
 PubSubClient mqttClient;
 
@@ -69,8 +75,10 @@ void setup() {
   pinMode(PIN_POS_2, INPUT_PULLUP);
   pinMode(PIN_POS_3, INPUT_PULLUP);
   pinMode(PIN_POS_4, INPUT_PULLUP);
+  pinMode(PIN_MOVING_UP, OUTPUT);
   pinMode(PIN_MOVING_DOWN, OUTPUT);
-  pinMode(PIN_MOVING_DOWN, OUTPUT);
+  digitalWrite(PIN_MOVING_DOWN,LOW);
+  digitalWrite(PIN_MOVING_UP,LOW);
 
   // setup ethernet communication using DHCP
   if (Ethernet.begin(mac) == 0) {
@@ -331,12 +339,14 @@ void movingUp() {
   LOG_LN(">>> Moving up <<<");
   digitalWrite(PIN_MOVING_DOWN, LOW);
   digitalWrite(PIN_MOVING_UP, HIGH);
+  isMovingUp = true;
   isMoving = true;
 }
 void movingDown() {
   LOG_LN(">>> Moving down <<<");
   digitalWrite(PIN_MOVING_UP, LOW);
   digitalWrite(PIN_MOVING_DOWN, HIGH);
+  isMovingUp = false;
   isMoving = true;
 }
 void stopMoving() {

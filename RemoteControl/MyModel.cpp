@@ -229,9 +229,11 @@ void MyModel::slotReceivedResponeFromBroker(QString topicName, QByteArray data )
         if(getPropertyCameraSetting("subTopic",i) == topicName)
         {
             int _intData = data.toInt();
-            if(_intData >= 0 && _intData <=4)
+            if(_intData >= POS_1 && _intData <= POS_10)
             {
                 this->setPropertyCameraSetting("activedIndex",i,QVariant::fromValue(_intData));
+            }else if(_intData == -1){
+                this->setPropertyCameraSetting("activedIndex",i,QVariant::fromValue(1000));
             }
             return;
         }

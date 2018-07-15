@@ -14,4 +14,15 @@
 #define REQUESTDATA_TOPIC           "REQUESTDATA"
 #define CONNECTED_TOPIC             "CONNECTED"
 
+#define POS_1                       0
+#define POS_2                       1
+#define POS_3                       2
+#define POS_4                       3
+#define POS_5                       4
+#define POS_6                       5
+#define POS_7                       6
+#define POS_8                       7
+#define POS_9                       8
+#define POS_10                      9
+
 #endif // APPDEFINE_H

@@ -4,7 +4,7 @@ import QtQuick.Window 2.10
 Window {
     visible: true
     width: 550
-    height: 250
+    height: 300
     minimumHeight: height
     maximumHeight: height
     minimumWidth: width
@@ -41,12 +41,12 @@ Window {
 
     SettingPosition{
         width: parent.width
-        height: 50
+        height: 100
         anchors.left: parent.left
         anchors.leftMargin: 10
         anchors.top: cameraOption.bottom
         anchors.topMargin: 40
-        enabled: cameraOption.isActived
+        enabled: true//cameraOption.isActived
         activedIndex:(MyModel.currentCamera >= 0 &&
                       MyModel.currentCamera < MyModel.listCameraSetting.length)?
                          MyModel.listCameraSetting[MyModel.currentCamera].activedIndex: 0

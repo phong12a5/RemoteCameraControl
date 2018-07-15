@@ -20,24 +20,13 @@
 #define SUB_TOPIC_INIT_DATA             "REQUESTDATA"
 #define SUB_TOPIC_REQ_CHANGE_POS        "CAMERA_00_REQ"
 
-#define DATA_POS_0                      "0"
-#define DATA_POS_1                      "1"
-#define DATA_POS_2                      "2"
-#define DATA_POS_3                      "3"
-#define DATA_POS_4                      "4"
+#define INPUT_SIZE                      10
 
-#define PIN_POS_0                       5
-#define PIN_POS_1                       6
-#define PIN_POS_2                       7
-#define PIN_POS_3                       8
-#define PIN_POS_4                       9
+#define PIN_MOVING_DOWN                 A0
+#define PIN_MOVING_UP                   A1
 
-#define PIN_MOVING_DOWN                 2
-#define PIN_MOVING_UP                   3
-
-#define READPIN_DELAY_TIMEOUT           30
-#define LOG(a)                          Serial.print(a)
-#define LOG_LN(a)                       Serial.println(a)
+#define LOG(a)                          //Serial.print(a)
+#define LOG_LN(a)                       //Serial.println(a)
 
 enum E_MOVING_STATUS: int{
     E_MOVING_NONE = 0,
@@ -49,9 +38,13 @@ String ip = "";
 uint8_t mac[6] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 long previousMillis = 0;
 unsigned int requestedPosition = -1;
+int lastActivePos = -1;
 int isMoving = (int)E_MOVING_STATUS::E_MOVING_NONE;
 EthernetClient ethClient;
 PubSubClient mqttClient;
+
+unsigned int pos_pin[INPUT_SIZE] = {0,1,2,3,4,5,6,7,8,9};
+char trans_data[INPUT_SIZE] = {'0','1','2','3','4','5','6','7','8','9'};
 
 void initProgram();
 int getActivedPin();
@@ -65,16 +58,16 @@ void movingDown();
 void stopMoving();
 
 void setup() {
+    delay(1000);
     LOG_LN(">>> Welcome to MQTT Arduino Project <<<");
     // setup serial communication
-    Serial.begin(9600);
-    while (!Serial) {};
+//    Serial.begin(9600);
+//    while (!Serial) {};
     LOG_LN(">>> Setup PIN <<<");
-    pinMode(PIN_POS_0, INPUT_PULLUP);
-    pinMode(PIN_POS_1, INPUT_PULLUP);
-    pinMode(PIN_POS_2, INPUT_PULLUP);
-    pinMode(PIN_POS_3, INPUT_PULLUP);
-    pinMode(PIN_POS_4, INPUT_PULLUP);
+    for(int i = 0; i < INPUT_SIZE; i++){
+        pinMode(pos_pin[i], INPUT_PULLUP);
+    }
+
     pinMode(PIN_MOVING_UP, OUTPUT);
     pinMode(PIN_MOVING_DOWN, OUTPUT);
     digitalWrite(PIN_MOVING_DOWN,LOW);
@@ -103,22 +96,21 @@ void setup() {
 }
 
 void loop() {
-    //  if (millis() - previousMillis > PUBLISH_DELAY) {
-    //    previousMillis = millis();
-    //
-    //  }
     int activedPos = getActivedPin();
     if (isMoving == E_MOVING_STATUS::E_MOVING_UP ||
             isMoving == E_MOVING_STATUS::E_MOVING_DOWN){
         if (requestedPosition == activedPos){
             stopMoving();
-            responseActivedPosToDevice(activedPos);
         }
     } else {
         if (requestedPosition != activedPos){
             requestedPosition = activedPos;
-            responseActivedPosToDevice(activedPos);
         }
+    }
+
+    if(lastActivePos != activedPos){
+        responseActivedPosToDevice(-1);
+        lastActivePos = activedPos;
     }
 
     if (!mqttClient.connected())
@@ -132,7 +124,7 @@ void initProgram() {
     LOG_LN(">>> Init Application <<<");
     int actviedPos = getActivedPin();
     sendDataToBroker(static_cast<const char *>(PUB_TOPIC_CONNECTED), static_cast<const char *>(CLIENT_ID), false);
-    if (actviedPos >= PIN_POS_0 && actviedPos <= PIN_POS_4)
+    if (actviedPos >= pos_pin[0] && actviedPos <= pos_pin[INPUT_SIZE - 1])
     {
         responseActivedPosToDevice(actviedPos);
     }
@@ -142,41 +134,19 @@ int getActivedPin()
 {
     int count = 0;
     int activedPos = -1;
-    if (!digitalRead(PIN_POS_0))
-    {
-        count ++;
-        activedPos = PIN_POS_0;
-    }
-    if (!digitalRead(PIN_POS_1))
-    {
-        count ++;
-        activedPos = PIN_POS_1;
-    }
-    if (!digitalRead(PIN_POS_2))
-    {
-        count ++;
-        activedPos = PIN_POS_2;
-    }
-    if (!digitalRead(PIN_POS_3))
-    {
-        count ++;
-        activedPos = PIN_POS_3;
-    }
-    if (!digitalRead(PIN_POS_4))
-    {
-        count ++;
-        activedPos = PIN_POS_4;
+    for(int i = 0; i < INPUT_SIZE; ++i){
+        if (!digitalRead(pos_pin[i]))
+        {
+            count ++;
+            activedPos = pos_pin[i];
+        }
     }
 
     if (count > 1)
     {
-        //        LOG(">>> Have more 1 Actived pos: ");
-        //        LOG(count);
-        //        LOG_LN(" <<<");
         activedPos = -1;
     } else if (count <= 0)
     {
-        //        LOG_LN(">>> There isn't any actived position! <<<");
         activedPos = -1;
     }
     return activedPos;
@@ -186,27 +156,19 @@ void responseActivedPosToDevice(int pos)
 {
     LOG_LN(">>> responseActivedPosToDevice <<<");
     int actviedPos = getActivedPin();
-    if (actviedPos >= PIN_POS_0 && actviedPos <= PIN_POS_4)
+    if (actviedPos >= pos_pin[0] && actviedPos <= pos_pin[INPUT_SIZE - 1])
     {
-        switch (actviedPos) {
-        case PIN_POS_0:
-            sendDataToBroker(static_cast<const char *>(PUB_TOPIC_RESP_DATA), static_cast<const char *>(DATA_POS_0), true);
-            break;
-        case PIN_POS_1:
-            sendDataToBroker(static_cast<const char *>(PUB_TOPIC_RESP_DATA), static_cast<const char *>(DATA_POS_1), true);
-            break;
-        case PIN_POS_2:
-            sendDataToBroker(static_cast<const char *>(PUB_TOPIC_RESP_DATA), static_cast<const char *>(DATA_POS_2), true);
-            break;
-        case PIN_POS_3:
-            sendDataToBroker(static_cast<const char *>(PUB_TOPIC_RESP_DATA), static_cast<const char *>(DATA_POS_3), true);
-            break;
-        case PIN_POS_4:
-            sendDataToBroker(static_cast<const char *>(PUB_TOPIC_RESP_DATA), static_cast<const char *>(DATA_POS_4), true);
-            break;
-        default:
-            break;
+        for(int i = 0; i < INPUT_SIZE; ++i){
+            if(actviedPos == pos_pin[i]){
+                char data_str[2];
+                data_str[0] = trans_data[i];
+                data_str[1] = '\0';
+                sendDataToBroker(static_cast<const char *>(PUB_TOPIC_RESP_DATA),data_str, true);
+                break;
+            }
         }
+    }else if(pos == -1){
+        sendDataToBroker(static_cast<const char *>(PUB_TOPIC_RESP_DATA),"-1", true);
     }
 }
 
@@ -253,51 +215,22 @@ void callback(char* topic, byte* payload, unsigned int length) {
                 return;
             }
 
-            if (payload[0] == '0')
-            {
-                LOG_LN(">>> Requested position: ");
-                LOG(DATA_POS_0);
-                LOG_LN(" <<<");
-                movingToPosition(PIN_POS_0);
-                requestedPosition = PIN_POS_0;
-            } else if (payload[0] == '1')
-            {
-                LOG_LN(">>> Requested position: ");
-                LOG(DATA_POS_1);
-                LOG_LN(" <<<");
-                movingToPosition(PIN_POS_1);
-                requestedPosition = PIN_POS_1;
-            }
-            else if (payload[0] == '2')
-            {
-                LOG_LN(">>> Requested position: ");
-                LOG(DATA_POS_2);
-                LOG_LN(" <<<");
-                movingToPosition(PIN_POS_2);
-                requestedPosition = PIN_POS_2;
-            }
-            else if (payload[0] == '3')
-            {
-                LOG_LN(">>> Requested position: ");
-                LOG(DATA_POS_3);
-                LOG_LN(" <<<");
-                movingToPosition(PIN_POS_3);
-                requestedPosition = PIN_POS_3;
-            }
-            else if (payload[0] == '4')
-            {
-                LOG_LN(">>> Requested position: ");
-                LOG(DATA_POS_4);
-                LOG_LN(" <<<");
-                movingToPosition(PIN_POS_4);
-                requestedPosition = PIN_POS_4;
+            for(int i = 0; i < INPUT_SIZE; ++i){
+                if(trans_data[i] == payload[0]){
+                    LOG_LN(">>> Requested position: ");
+                    LOG(trans_data[i]);
+                    LOG_LN(" <<<");
+                    movingToPosition(pos_pin[i]);
+                    requestedPosition = pos_pin[i];
+                    break;
+                }
             }
         }
         else if (strcmp(topic, static_cast<const char*>(SUB_TOPIC_INIT_DATA)) == 0)
         {
             int activedPos = getActivedPin();
             sendDataToBroker(static_cast<const char *>(PUB_TOPIC_CONNECTED), static_cast<const char *>(CLIENT_ID), false);
-            if (activedPos >= PIN_POS_0 && activedPos <= PIN_POS_4)
+            if (activedPos >= pos_pin[0] && activedPos <= pos_pin[INPUT_SIZE - 1])
             {
                 responseActivedPosToDevice(activedPos);
             }
@@ -308,32 +241,16 @@ void callback(char* topic, byte* payload, unsigned int length) {
 void movingToPosition(int pos)
 {
     int activedPos = getActivedPin();
-    if (activedPos >= PIN_POS_0 && activedPos <= PIN_POS_4 && pos >= PIN_POS_0 && pos <= PIN_POS_4)
+    if (activedPos >= pos_pin[0] && activedPos <= pos_pin[INPUT_SIZE - 1] && pos >= pos_pin[0] && pos <= pos_pin[INPUT_SIZE - 1])
     {
         if (activedPos == pos)
         {
             LOG_LN("Requested position is already actived!");
             return;
-        }
-        switch (activedPos) {
-        case PIN_POS_0:
-            movingUp();
-            break;
-        case PIN_POS_1:
-            if (pos == PIN_POS_0) movingDown();
-            else movingUp();
-            break;
-        case PIN_POS_2:
-            if (pos < PIN_POS_2) movingDown();
-            else movingUp();
-            break;
-        case PIN_POS_3:
-            if (pos == PIN_POS_4) movingUp();
-            else movingDown();
-            break;
-        case PIN_POS_4:
+        }else if(pos < activedPos){
             movingDown();
-            break;
+        }else{
+            movingUp();
         }
     }
 }
